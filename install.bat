@@ -6,37 +6,46 @@ echo ORACLE2U Extension Installer
 echo ========================================
 echo.
 
-REM Check if Node.js is installed
+REM Check if Node.js is installed and accessible
+set "NODE_EXE="
 where node >nul 2>nul
 if %ERRORLEVEL% EQU 0 (
-    echo Node.js found!
+    set "NODE_EXE=node"
+    echo Node.js found in PATH!
     node --version
     echo.
     goto :install
 )
 
-echo Node.js not found in PATH. Checking common installation locations...
-set "NODE_PATH="
-
+REM Check common installation paths
 if exist "%ProgramFiles%\nodejs\node.exe" (
+    set "NODE_EXE=%ProgramFiles%\nodejs\node.exe"
     set "NODE_PATH=%ProgramFiles%\nodejs"
     echo Found Node.js in Program Files
 ) else if exist "%ProgramFiles(x86)%\nodejs\node.exe" (
+    set "NODE_EXE=%ProgramFiles(x86)%\nodejs\node.exe"
     set "NODE_PATH=%ProgramFiles(x86)%\nodejs"
     echo Found Node.js in Program Files (x86)
 ) else if exist "%LOCALAPPDATA%\Programs\nodejs\node.exe" (
+    set "NODE_EXE=%LOCALAPPDATA%\Programs\nodejs\node.exe"
     set "NODE_PATH=%LOCALAPPDATA%\Programs\nodejs"
     echo Found Node.js in Local AppData
 )
 
-if defined NODE_PATH (
-    echo Adding Node.js to PATH for this session...
-    set "PATH=!NODE_PATH!;!PATH!"
-    goto :install
+if defined NODE_EXE (
+    echo Testing Node.js...
+    "!NODE_EXE!" --version >nul 2>&1
+    if %ERRORLEVEL% EQU 0 (
+        "!NODE_EXE!" --version
+        echo.
+        goto :install
+    )
 )
 
+REM Node.js not found - offer to install
 echo.
-echo Node.js is not installed. Would you like to install it automatically? (Y/N)
+echo Node.js is not installed or not accessible.
+echo Would you like to install it automatically? (Y/N)
 set /p INSTALL_NODE="> "
 if /i not "%INSTALL_NODE%"=="Y" (
     echo.
@@ -66,60 +75,87 @@ echo Installing Node.js (this may take a minute)...
 echo Please wait...
 start /wait msiexec /i "%INSTALLER%" /quiet /norestart
 
-REM Wait for installation to complete
-timeout /t 5 /nobreak >nul
+REM Wait longer for installation to complete
+echo Waiting for installation to finish...
+timeout /t 10 /nobreak >nul
 
 REM Clean up installer
 del "%INSTALLER%" >nul 2>&1
 
 REM Check for Node.js after installation
+set "NODE_EXE="
+set "NODE_PATH="
+
 if exist "%ProgramFiles%\nodejs\node.exe" (
+    set "NODE_EXE=%ProgramFiles%\nodejs\node.exe"
     set "NODE_PATH=%ProgramFiles%\nodejs"
 ) else if exist "%ProgramFiles(x86)%\nodejs\node.exe" (
+    set "NODE_EXE=%ProgramFiles(x86)%\nodejs\node.exe"
     set "NODE_PATH=%ProgramFiles(x86)%\nodejs"
 ) else if exist "%LOCALAPPDATA%\Programs\nodejs\node.exe" (
+    set "NODE_EXE=%LOCALAPPDATA%\Programs\nodejs\node.exe"
     set "NODE_PATH=%LOCALAPPDATA%\Programs\nodejs"
 )
 
-if not defined NODE_PATH (
+if not defined NODE_EXE (
     echo.
-    echo Node.js installation may have completed, but it was not found.
+    echo Node.js installation completed, but it was not found in expected locations.
     echo Please close this window and run install.bat again.
     echo.
     pause
     exit /b 0
 )
 
-set "PATH=!NODE_PATH!;!PATH!"
+echo Testing installed Node.js...
+"!NODE_EXE!" --version >nul 2>&1
+if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo Node.js was installed but is not working correctly.
+    echo Please close this window and run install.bat again.
+    echo.
+    pause
+    exit /b 0
+)
+
+"!NODE_EXE!" --version
 echo Node.js installed successfully!
 echo.
 
 :install
-echo Verifying Node.js...
-where node >nul 2>nul
-if %ERRORLEVEL% NEQ 0 (
-    echo ERROR: Node.js is still not accessible.
-    echo Please restart your computer or run this installer again.
-    echo.
-    pause
-    exit /b 1
+REM Verify we have a working Node.js
+if not defined NODE_EXE (
+    if defined NODE_PATH (
+        set "NODE_EXE=!NODE_PATH!\node.exe"
+    ) else (
+        where node >nul 2>nul
+        if %ERRORLEVEL% EQU 0 (
+            set "NODE_EXE=node"
+        ) else (
+            echo ERROR: Cannot find Node.js executable.
+            echo.
+            pause
+            exit /b 1
+        )
+    )
 )
 
-node --version
+REM Test Node.js
+"!NODE_EXE!" --version >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
-    echo ERROR: Failed to run Node.js.
+    echo ERROR: Node.js is not working correctly.
     echo.
     pause
     exit /b 1
 )
-echo.
 
 echo Installing dependencies...
 if defined NODE_PATH (
-    "!NODE_PATH!\npm.cmd" install
+    set "NPM_EXE=!NODE_PATH!\npm.cmd"
 ) else (
-    call npm install
+    set "NPM_EXE=npm"
 )
+
+"!NPM_EXE!" install
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo ERROR: Failed to install dependencies.
@@ -130,11 +166,7 @@ if %ERRORLEVEL% NEQ 0 (
 
 echo.
 echo Building extension...
-if defined NODE_PATH (
-    "!NODE_PATH!\npm.cmd" run build
-) else (
-    call npm run build
-)
+"!NPM_EXE!" run build
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo ERROR: Failed to build extension.
