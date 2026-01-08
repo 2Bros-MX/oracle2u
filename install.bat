@@ -1,9 +1,14 @@
 @echo off
 setlocal enabledelayedexpansion
 
+REM Change to the directory where this script is located
+cd /d "%~dp0"
+
 echo ========================================
 echo ORACLE2U Extension Installer
 echo ========================================
+echo.
+echo Working directory: %CD%
 echo.
 
 REM Check if Node.js is installed and accessible
