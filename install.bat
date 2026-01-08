@@ -156,16 +156,22 @@ if %ERRORLEVEL% NEQ 0 (
 echo Finding npm...
 set "NPM_FOUND=0"
 
+REM Ensure we're in the script directory
+cd /d "%~dp0"
+echo Current directory: %CD%
+
 REM Try npm.cmd first
 if defined NODE_PATH (
     if exist "!NODE_PATH!\npm.cmd" (
         echo Found npm.cmd
         echo Installing dependencies...
+        cd /d "%~dp0"
         "!NODE_PATH!\npm.cmd" install
         if not errorlevel 1 (
             set "NPM_FOUND=1"
             echo.
             echo Building extension...
+            cd /d "%~dp0"
             "!NODE_PATH!\npm.cmd" run build
             set BUILD_RESULT=!ERRORLEVEL!
             if !BUILD_RESULT! NEQ 0 (
@@ -187,11 +193,13 @@ if defined NODE_PATH (
     if exist "!NODE_PATH!\node_modules\npm\bin\npm-cli.js" (
         echo Found npm-cli.js, using node to run it
         echo Installing dependencies...
+        cd /d "%~dp0"
         "!NODE_EXE!" "!NODE_PATH!\node_modules\npm\bin\npm-cli.js" install
         if not errorlevel 1 (
             set "NPM_FOUND=1"
             echo.
             echo Building extension...
+            cd /d "%~dp0"
             "!NODE_EXE!" "!NODE_PATH!\node_modules\npm\bin\npm-cli.js" run build
             set BUILD_RESULT=!ERRORLEVEL!
             if !BUILD_RESULT! NEQ 0 (
@@ -213,11 +221,13 @@ where npm >nul 2>nul
 if %ERRORLEVEL% EQU 0 (
     echo Found npm in PATH
     echo Installing dependencies...
+    cd /d "%~dp0"
     npm install
     if not errorlevel 1 (
         set "NPM_FOUND=1"
         echo.
         echo Building extension...
+        cd /d "%~dp0"
         npm run build
         set BUILD_RESULT=!ERRORLEVEL!
         if !BUILD_RESULT! NEQ 0 (
