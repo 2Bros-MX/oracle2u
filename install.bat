@@ -149,91 +149,68 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo Finding npm...
-set "USE_NPM_CLI=0"
-set "NPM_CMD="
+set "NPM_FOUND=0"
 
-REM Try to find npm.cmd first
+REM Try npm.cmd first
 if defined NODE_PATH (
     if exist "!NODE_PATH!\npm.cmd" (
-        set "NPM_CMD=!NODE_PATH!\npm.cmd"
         echo Found npm.cmd
-    )
-)
-
-REM If npm.cmd not found, try to find npm-cli.js and use node to run it
-if not defined NPM_CMD (
-    if defined NODE_PATH (
-        if exist "!NODE_PATH!\node_modules\npm\bin\npm-cli.js" (
-            set "USE_NPM_CLI=1"
-            set "NPM_CLI=!NODE_PATH!\node_modules\npm\bin\npm-cli.js"
-            echo Found npm-cli.js, will use node to run it
+        echo Installing dependencies...
+        "!NODE_PATH!\npm.cmd" install
+        if not errorlevel 1 (
+            set "NPM_FOUND=1"
+            echo.
+            echo Building extension...
+            "!NODE_PATH!\npm.cmd" run build
+            goto :npm_done
         )
     )
 )
 
-REM If still not found, try PATH
-if not defined NPM_CMD (
-    if %USE_NPM_CLI% EQU 0 (
-        where npm >nul 2>nul
-        if %ERRORLEVEL% EQU 0 (
-            set "NPM_CMD=npm"
-            echo Found npm in PATH
+REM Try npm-cli.js with node
+if defined NODE_PATH (
+    if exist "!NODE_PATH!\node_modules\npm\bin\npm-cli.js" (
+        echo Found npm-cli.js, using node to run it
+        echo Installing dependencies...
+        "!NODE_EXE!" "!NODE_PATH!\node_modules\npm\bin\npm-cli.js" install
+        if not errorlevel 1 (
+            set "NPM_FOUND=1"
+            echo.
+            echo Building extension...
+            "!NODE_EXE!" "!NODE_PATH!\node_modules\npm\bin\npm-cli.js" run build
+            goto :npm_done
         )
     )
 )
 
-if not defined NPM_CMD (
-    if %USE_NPM_CLI% EQU 0 (
+REM Try npm from PATH
+where npm >nul 2>nul
+if %ERRORLEVEL% EQU 0 (
+    echo Found npm in PATH
+    echo Installing dependencies...
+    npm install
+    if not errorlevel 1 (
+        set "NPM_FOUND=1"
         echo.
-        echo ERROR: Cannot find npm. Please ensure Node.js is properly installed.
-        echo.
-        pause
-        exit /b 1
+        echo Building extension...
+        npm run build
+        goto :npm_done
     )
-)
-
-REM Test npm
-echo Testing npm...
-if %USE_NPM_CLI% EQU 1 (
-    "!NODE_EXE!" "!NPM_CLI!" --version >nul 2>&1
-    if %ERRORLEVEL% EQU 0 (
-        "!NODE_EXE!" "!NPM_CLI!" --version
-        echo.
-    ) else (
-        echo WARNING: npm test failed, but continuing anyway...
-        echo.
-    )
-) else (
-    "!NPM_CMD!" --version >nul 2>&1
-    if %ERRORLEVEL% EQU 0 (
-        "!NPM_CMD!" --version
-        echo.
-    ) else (
-        echo WARNING: npm test failed, but continuing anyway...
-        echo.
-    )
-)
-
-echo Installing dependencies...
-if %USE_NPM_CLI% EQU 1 (
-    "!NODE_EXE!" "!NPM_CLI!" install
-) else (
-    "!NPM_CMD!" install
-)
-if %ERRORLEVEL% NEQ 0 (
-    echo.
-    echo ERROR: Failed to install dependencies.
-    echo.
-    pause
-    exit /b 1
 )
 
 echo.
-echo Building extension...
-if %USE_NPM_CLI% EQU 1 (
-    "!NODE_EXE!" "!NPM_CLI!" run build
-) else (
-    "!NPM_CMD!" run build
+echo ERROR: Cannot find or use npm. Please ensure Node.js is properly installed.
+echo.
+pause
+exit /b 1
+
+:npm_done
+if errorlevel 1 (
+    echo.
+    echo ERROR: Build failed.
+    echo.
+    pause
+    exit /b 1
 )
 if %ERRORLEVEL% NEQ 0 (
     echo.
