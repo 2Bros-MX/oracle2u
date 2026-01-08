@@ -167,6 +167,16 @@ if defined NODE_PATH (
             echo.
             echo Building extension...
             "!NODE_PATH!\npm.cmd" run build
+            set BUILD_RESULT=!ERRORLEVEL!
+            if !BUILD_RESULT! NEQ 0 (
+                echo.
+                echo ERROR: Build failed with error code !BUILD_RESULT!
+                echo Please check the error messages above.
+                echo.
+                pause
+                exit /b 1
+            )
+            echo Build completed successfully!
             goto :npm_done
         )
     )
@@ -183,6 +193,16 @@ if defined NODE_PATH (
             echo.
             echo Building extension...
             "!NODE_EXE!" "!NODE_PATH!\node_modules\npm\bin\npm-cli.js" run build
+            set BUILD_RESULT=!ERRORLEVEL!
+            if !BUILD_RESULT! NEQ 0 (
+                echo.
+                echo ERROR: Build failed with error code !BUILD_RESULT!
+                echo Please check the error messages above.
+                echo.
+                pause
+                exit /b 1
+            )
+            echo Build completed successfully!
             goto :npm_done
         )
     )
@@ -199,6 +219,16 @@ if %ERRORLEVEL% EQU 0 (
         echo.
         echo Building extension...
         npm run build
+        set BUILD_RESULT=!ERRORLEVEL!
+        if !BUILD_RESULT! NEQ 0 (
+            echo.
+            echo ERROR: Build failed with error code !BUILD_RESULT!
+            echo Please check the error messages above.
+            echo.
+            pause
+            exit /b 1
+        )
+        echo Build completed successfully!
         goto :npm_done
     )
 )
@@ -210,21 +240,6 @@ pause
 exit /b 1
 
 :npm_done
-if errorlevel 1 (
-    echo.
-    echo ERROR: Build failed.
-    echo.
-    pause
-    exit /b 1
-)
-if %ERRORLEVEL% NEQ 0 (
-    echo.
-    echo ERROR: Failed to build extension.
-    echo.
-    pause
-    exit /b 1
-)
-
 echo.
 echo ========================================
 echo Installation Complete!
