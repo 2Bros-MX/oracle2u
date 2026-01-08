@@ -35,6 +35,16 @@ ORACLE2U automates the process of downloading stock, pricing, and product files 
 6. Enable "Developer mode"
 7. Click "Load unpacked" and select the `dist` folder
 
+## Updating
+
+### Windows (Easy Update)
+
+1. Double-click `update.bat` and follow the on-screen instructions
+2. The script will download the latest version from GitHub, update your files, and rebuild the extension
+3. Once complete, refresh the extension in Chrome (`chrome://extensions/` → click refresh icon on ORACLE2U)
+
+The update script automatically backs up your current `dist` folder to `dist-backup` before updating.
+
 ## Configuration
 
 Configure the extension through the settings panel:
