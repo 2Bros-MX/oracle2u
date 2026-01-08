@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "ORACLE2U",
+  "version": "1.7.1",
+  "description": "Smart downloader for Oracle2u stock files",
+  "permissions": [
+    "downloads",
+    "storage",
+    "tabs",
+    "activeTab",
+    "scripting",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "https://www.oro2u.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "ORACLE2U"
+  },
+  "side_panel": {
+    "default_path": "popup/index.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.oro2u.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
