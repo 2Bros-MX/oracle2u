@@ -1,7 +1,7 @@
 ORACLE2U Extension - Installation Guide
 ========================================
 
-QUICK INSTALL (Windows): yaya
+QUICK INSTALL (Windows):
 1. Double-click "install.bat"
 2. Wait for installation to complete
 3. Follow the on-screen instructions
