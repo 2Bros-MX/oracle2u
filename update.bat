@@ -134,131 +134,100 @@ echo Cleaning up...
 rmdir /s /q "!EXTRACT_DIR!" >nul 2>&1
 del "!ZIP_FILE!" >nul 2>&1
 
-echo.
-echo Installing dependencies...
+echo Finding npm...
+set "NPM_FOUND=0"
+
+REM Ensure we're in the script directory
 cd /d "%~dp0"
 echo Current directory: %CD%
-echo Verifying package.json exists...
-if not exist "package.json" (
-    echo ERROR: package.json not found in current directory!
-    echo Current directory: %CD%
-    echo.
-    pause
-    exit /b 1
-)
-echo package.json found.
-echo.
 
-REM Re-detect npm after file copy to ensure paths are correct
-echo Re-detecting npm...
-set "NPM_CMD="
-set "USE_NPM_CLI=0"
-set "NPM_CLI="
-
+REM Try npm.cmd first
 if defined NODE_PATH (
     if exist "!NODE_PATH!\npm.cmd" (
-        set "NPM_CMD=!NODE_PATH!\npm.cmd"
         echo Found npm.cmd
-    ) else if exist "!NODE_PATH!\node_modules\npm\bin\npm-cli.js" (
-        set "USE_NPM_CLI=1"
-        set "NPM_CLI=!NODE_PATH!\node_modules\npm\bin\npm-cli.js"
-        echo Found npm-cli.js
-    )
-)
-
-if not defined NPM_CMD (
-    if %USE_NPM_CLI% EQU 0 (
-        where npm >nul 2>nul
-        if %ERRORLEVEL% EQU 0 (
-            set "NPM_CMD=npm"
-            echo Found npm in PATH
+        echo Installing dependencies...
+        cd /d "%~dp0"
+        "!NODE_PATH!\npm.cmd" install
+        if not errorlevel 1 (
+            set "NPM_FOUND=1"
+            echo.
+            echo Building extension...
+            cd /d "%~dp0"
+            "!NODE_PATH!\npm.cmd" run build
+            if errorlevel 1 (
+                echo.
+                echo ERROR: Build failed.
+                echo Please check the error messages above.
+                echo.
+                pause
+                exit /b 1
+            )
+            echo Build completed successfully!
+            goto :npm_done
         )
-    )
-)
-
-if not defined NPM_CMD (
-    if %USE_NPM_CLI% EQU 0 (
-        echo ERROR: Cannot find npm.
-        echo.
-        pause
-        exit /b 1
-    )
-)
-
-REM Try npm.cmd first
-if defined NPM_CMD (
-    echo Using npm: "!NPM_CMD!"
-    "!NPM_CMD!" install
-    if not errorlevel 1 (
-        goto :npm_install_done
     )
 )
 
 REM Try npm-cli.js with node
-if %USE_NPM_CLI% EQU 1 (
-    if defined NPM_CLI (
-        if exist "!NPM_CLI!" (
-            echo Using npm via node: "!NODE_EXE!" "!NPM_CLI!"
-            "!NODE_EXE!" "!NPM_CLI!" install
-            if not errorlevel 1 (
-                goto :npm_install_done
+if defined NODE_PATH (
+    if exist "!NODE_PATH!\node_modules\npm\bin\npm-cli.js" (
+        echo Found npm-cli.js, using node to run it
+        echo Installing dependencies...
+        cd /d "%~dp0"
+        "!NODE_EXE!" "!NODE_PATH!\node_modules\npm\bin\npm-cli.js" install
+        if not errorlevel 1 (
+            set "NPM_FOUND=1"
+            echo.
+            echo Building extension...
+            cd /d "%~dp0"
+            "!NODE_EXE!" "!NODE_PATH!\node_modules\npm\bin\npm-cli.js" run build
+            if errorlevel 1 (
+                echo.
+                echo ERROR: Build failed.
+                echo Please check the error messages above.
+                echo.
+                pause
+                exit /b 1
             )
+            echo Build completed successfully!
+            goto :npm_done
         )
     )
 )
 
-echo ERROR: Failed to run npm install.
-pause
-exit /b 1
-
-:npm_install_done
-if errorlevel 1 (
-    echo.
-    echo ERROR: Failed to install dependencies.
-    echo You may need to restore from dist-backup if something went wrong.
-    echo.
-    pause
-    exit /b 1
+REM Try npm from PATH
+where npm >nul 2>nul
+if %ERRORLEVEL% EQU 0 (
+    echo Found npm in PATH
+    echo Installing dependencies...
+    cd /d "%~dp0"
+    npm install
+    if not errorlevel 1 (
+        set "NPM_FOUND=1"
+        echo.
+        echo Building extension...
+        cd /d "%~dp0"
+        npm run build
+        if errorlevel 1 (
+            echo.
+            echo ERROR: Build failed.
+            echo Please check the error messages above.
+            echo.
+            pause
+            exit /b 1
+        )
+        echo Build completed successfully!
+        goto :npm_done
+    )
 )
 
 echo.
-echo Building extension...
-cd /d "%~dp0"
-
-REM Try npm.cmd first
-if defined NPM_CMD (
-    "!NPM_CMD!" run build
-    if not errorlevel 1 (
-        goto :npm_build_done
-    )
-)
-
-REM Try npm-cli.js with node
-if %USE_NPM_CLI% EQU 1 (
-    if defined NPM_CLI (
-        if exist "!NPM_CLI!" (
-            "!NODE_EXE!" "!NPM_CLI!" run build
-            if not errorlevel 1 (
-                goto :npm_build_done
-            )
-        )
-    )
-)
-
-echo ERROR: Build failed.
+echo ERROR: Cannot find or use npm. Please ensure Node.js is properly installed.
+echo.
 pause
 exit /b 1
 
-:npm_build_done
-if errorlevel 1 (
-    echo.
-    echo ERROR: Build failed.
-    echo You may need to restore from dist-backup if something went wrong.
-    echo.
-    pause
-    exit /b 1
-)
-
+:npm_done
 echo.
 echo ========================================
 echo Update Complete!
