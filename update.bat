@@ -48,9 +48,11 @@ set "USE_NPM_CLI=0"
 if defined NODE_PATH (
     if exist "!NODE_PATH!\npm.cmd" (
         set "NPM_CMD=!NODE_PATH!\npm.cmd"
+        echo Found npm.cmd at "!NPM_CMD!"
     ) else if exist "!NODE_PATH!\node_modules\npm\bin\npm-cli.js" (
         set "USE_NPM_CLI=1"
         set "NPM_CLI=!NODE_PATH!\node_modules\npm\bin\npm-cli.js"
+        echo Found npm-cli.js at "!NPM_CLI!"
     )
 )
 
@@ -135,10 +137,42 @@ del "!ZIP_FILE!" >nul 2>&1
 echo.
 echo Installing dependencies...
 cd /d "%~dp0"
-if "!USE_NPM_CLI!"=="1" (
-    "!NODE_EXE!" "!NPM_CLI!" install
+echo Current directory: %CD%
+echo Verifying package.json exists...
+if not exist "package.json" (
+    echo ERROR: package.json not found in current directory!
+    echo Current directory: %CD%
+    echo.
+    pause
+    exit /b 1
+)
+echo package.json found.
+echo.
+if %USE_NPM_CLI% EQU 1 (
+    if defined NPM_CLI (
+        if exist "!NPM_CLI!" (
+            echo Using npm via node: "!NODE_EXE!" "!NPM_CLI!"
+            "!NODE_EXE!" "!NPM_CLI!" install
+        ) else (
+            echo ERROR: npm-cli.js not found at "!NPM_CLI!"
+            echo Please check your Node.js installation.
+            pause
+            exit /b 1
+        )
+    ) else (
+        echo ERROR: NPM_CLI path not set.
+        pause
+        exit /b 1
+    )
 ) else (
-    "!NPM_CMD!" install
+    if defined NPM_CMD (
+        echo Using npm: "!NPM_CMD!"
+        "!NPM_CMD!" install
+    ) else (
+        echo ERROR: NPM_CMD not set.
+        pause
+        exit /b 1
+    )
 )
 if errorlevel 1 (
     echo.
@@ -152,10 +186,32 @@ if errorlevel 1 (
 echo.
 echo Building extension...
 cd /d "%~dp0"
-if "!USE_NPM_CLI!"=="1" (
-    "!NODE_EXE!" "!NPM_CLI!" run build
+echo Current directory: %CD%
+if %USE_NPM_CLI% EQU 1 (
+    if defined NPM_CLI (
+        if exist "!NPM_CLI!" (
+            echo Using npm via node: "!NODE_EXE!" "!NPM_CLI!"
+            "!NODE_EXE!" "!NPM_CLI!" run build
+        ) else (
+            echo ERROR: npm-cli.js not found at "!NPM_CLI!"
+            echo Please check your Node.js installation.
+            pause
+            exit /b 1
+        )
+    ) else (
+        echo ERROR: NPM_CLI path not set.
+        pause
+        exit /b 1
+    )
 ) else (
-    "!NPM_CMD!" run build
+    if defined NPM_CMD (
+        echo Using npm: "!NPM_CMD!"
+        "!NPM_CMD!" run build
+    ) else (
+        echo ERROR: NPM_CMD not set.
+        pause
+        exit /b 1
+    )
 )
 if errorlevel 1 (
     echo.
