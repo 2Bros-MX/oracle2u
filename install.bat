@@ -149,21 +149,22 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo Finding npm...
-set "NPM_EXE="
-set "NPM_CLI="
+set "USE_NPM_CLI=0"
+set "NPM_CMD="
 
 REM Try to find npm.cmd first
 if defined NODE_PATH (
     if exist "!NODE_PATH!\npm.cmd" (
-        set "NPM_EXE=!NODE_PATH!\npm.cmd"
+        set "NPM_CMD=!NODE_PATH!\npm.cmd"
         echo Found npm.cmd
     )
 )
 
 REM If npm.cmd not found, try to find npm-cli.js and use node to run it
-if not defined NPM_EXE (
+if not defined NPM_CMD (
     if defined NODE_PATH (
         if exist "!NODE_PATH!\node_modules\npm\bin\npm-cli.js" (
+            set "USE_NPM_CLI=1"
             set "NPM_CLI=!NODE_PATH!\node_modules\npm\bin\npm-cli.js"
             echo Found npm-cli.js, will use node to run it
         )
@@ -171,44 +172,54 @@ if not defined NPM_EXE (
 )
 
 REM If still not found, try PATH
-if not defined NPM_EXE (
-    if not defined NPM_CLI (
+if not defined NPM_CMD (
+    if %USE_NPM_CLI% EQU 0 (
         where npm >nul 2>nul
         if %ERRORLEVEL% EQU 0 (
-            set "NPM_EXE=npm"
+            set "NPM_CMD=npm"
             echo Found npm in PATH
         )
     )
 )
 
-REM If we have npm-cli.js, construct command to use node
-if defined NPM_CLI (
-    REM Create a wrapper: node.exe npm-cli.js [args]
-    set "NPM_EXE=!NODE_EXE! !NPM_CLI!"
-)
-
-if not defined NPM_EXE (
-    echo.
-    echo ERROR: Cannot find npm. Please ensure Node.js is properly installed.
-    echo.
-    pause
-    exit /b 1
+if not defined NPM_CMD (
+    if %USE_NPM_CLI% EQU 0 (
+        echo.
+        echo ERROR: Cannot find npm. Please ensure Node.js is properly installed.
+        echo.
+        pause
+        exit /b 1
+    )
 )
 
 REM Test npm
 echo Testing npm...
-"!NPM_EXE!" --version >nul 2>&1
-if %ERRORLEVEL% NEQ 0 (
-    echo.
-    echo WARNING: npm test failed, but continuing anyway...
-    echo.
+if %USE_NPM_CLI% EQU 1 (
+    "!NODE_EXE!" "!NPM_CLI!" --version >nul 2>&1
+    if %ERRORLEVEL% EQU 0 (
+        "!NODE_EXE!" "!NPM_CLI!" --version
+        echo.
+    ) else (
+        echo WARNING: npm test failed, but continuing anyway...
+        echo.
+    )
 ) else (
-    "!NPM_EXE!" --version
-    echo.
+    "!NPM_CMD!" --version >nul 2>&1
+    if %ERRORLEVEL% EQU 0 (
+        "!NPM_CMD!" --version
+        echo.
+    ) else (
+        echo WARNING: npm test failed, but continuing anyway...
+        echo.
+    )
 )
 
 echo Installing dependencies...
-"!NPM_EXE!" install
+if %USE_NPM_CLI% EQU 1 (
+    "!NODE_EXE!" "!NPM_CLI!" install
+) else (
+    "!NPM_CMD!" install
+)
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo ERROR: Failed to install dependencies.
@@ -219,7 +230,11 @@ if %ERRORLEVEL% NEQ 0 (
 
 echo.
 echo Building extension...
-"!NPM_EXE!" run build
+if %USE_NPM_CLI% EQU 1 (
+    "!NODE_EXE!" "!NPM_CLI!" run build
+) else (
+    "!NPM_CMD!" run build
+)
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo ERROR: Failed to build extension.
