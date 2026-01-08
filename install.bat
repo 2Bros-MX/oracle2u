@@ -173,10 +173,9 @@ if defined NODE_PATH (
             echo Building extension...
             cd /d "%~dp0"
             "!NODE_PATH!\npm.cmd" run build
-            set BUILD_RESULT=!ERRORLEVEL!
-            if !BUILD_RESULT! NEQ 0 (
+            if errorlevel 1 (
                 echo.
-                echo ERROR: Build failed with error code !BUILD_RESULT!
+                echo ERROR: Build failed.
                 echo Please check the error messages above.
                 echo.
                 pause
@@ -201,10 +200,9 @@ if defined NODE_PATH (
             echo Building extension...
             cd /d "%~dp0"
             "!NODE_EXE!" "!NODE_PATH!\node_modules\npm\bin\npm-cli.js" run build
-            set BUILD_RESULT=!ERRORLEVEL!
-            if !BUILD_RESULT! NEQ 0 (
+            if errorlevel 1 (
                 echo.
-                echo ERROR: Build failed with error code !BUILD_RESULT!
+                echo ERROR: Build failed.
                 echo Please check the error messages above.
                 echo.
                 pause
@@ -229,10 +227,9 @@ if %ERRORLEVEL% EQU 0 (
         echo Building extension...
         cd /d "%~dp0"
         npm run build
-        set BUILD_RESULT=!ERRORLEVEL!
-        if !BUILD_RESULT! NEQ 0 (
+        if errorlevel 1 (
             echo.
-            echo ERROR: Build failed with error code !BUILD_RESULT!
+            echo ERROR: Build failed.
             echo Please check the error messages above.
             echo.
             pause
