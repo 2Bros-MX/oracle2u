@@ -75,9 +75,9 @@ echo Installing Node.js (this may take a minute)...
 echo Please wait...
 start /wait msiexec /i "%INSTALLER%" /quiet /norestart
 
-REM Wait longer for installation to complete
+REM Wait longer for installation to complete and npm to be available
 echo Waiting for installation to finish...
-timeout /t 10 /nobreak >nul
+timeout /t 15 /nobreak >nul
 
 REM Clean up installer
 del "%INSTALLER%" >nul 2>&1
@@ -148,13 +148,66 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 
-echo Installing dependencies...
+echo Finding npm...
+set "NPM_EXE="
+set "NPM_CLI="
+
+REM Try to find npm.cmd first
 if defined NODE_PATH (
-    set "NPM_EXE=!NODE_PATH!\npm.cmd"
-) else (
-    set "NPM_EXE=npm"
+    if exist "!NODE_PATH!\npm.cmd" (
+        set "NPM_EXE=!NODE_PATH!\npm.cmd"
+        echo Found npm.cmd
+    )
 )
 
+REM If npm.cmd not found, try to find npm-cli.js and use node to run it
+if not defined NPM_EXE (
+    if defined NODE_PATH (
+        if exist "!NODE_PATH!\node_modules\npm\bin\npm-cli.js" (
+            set "NPM_CLI=!NODE_PATH!\node_modules\npm\bin\npm-cli.js"
+            echo Found npm-cli.js, will use node to run it
+        )
+    )
+)
+
+REM If still not found, try PATH
+if not defined NPM_EXE (
+    if not defined NPM_CLI (
+        where npm >nul 2>nul
+        if %ERRORLEVEL% EQU 0 (
+            set "NPM_EXE=npm"
+            echo Found npm in PATH
+        )
+    )
+)
+
+REM If we have npm-cli.js, construct command to use node
+if defined NPM_CLI (
+    REM Create a wrapper: node.exe npm-cli.js [args]
+    set "NPM_EXE=!NODE_EXE! !NPM_CLI!"
+)
+
+if not defined NPM_EXE (
+    echo.
+    echo ERROR: Cannot find npm. Please ensure Node.js is properly installed.
+    echo.
+    pause
+    exit /b 1
+)
+
+REM Test npm
+echo Testing npm...
+"!NPM_EXE!" --version >nul 2>&1
+if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo WARNING: npm test failed, but continuing anyway...
+    echo.
+) else (
+    "!NPM_EXE!" --version
+    echo.
+)
+
+echo Installing dependencies...
 "!NPM_EXE!" install
 if %ERRORLEVEL% NEQ 0 (
     echo.
